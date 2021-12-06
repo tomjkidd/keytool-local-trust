@@ -109,6 +109,9 @@ move-server-to-truststore: export-server-pem-from-server-keystore
 list-server-truststore:
 	keytool -keystore $(SERVER_TRUSTSTORE_NAME) -storepass $(SERVER_TRUSTSTORE_PASSWORD) -list -v
 
+# ===== OSX specific stuff =====
+# See https://ss64.com/osx/security.html for more information
+
 osx-add-root-pem-to-keychain: $(ROOT_PEM_NAME)
 	sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" $(ROOT_PEM_NAME)
 
