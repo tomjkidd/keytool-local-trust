@@ -1,3 +1,21 @@
+# Mental Model:
+# - The 'root' keystore serves a mini Certificate Authority (CA)
+# - The 'server' keystore and truststore serve as the Java keystore and truststore, respectively, to use for a webserver
+# - The goal is to create a CA Root Certificate and a server Certificate, signed by that CA (both managed as PEM files).
+
+# Once we have the certificates, we can:
+# - Load the server private key and server certificate into the keystore to allow the server to server request
+# - Load the root and server certificates into the truststore to allow the server establish trust in them
+# - Load the root and server certificates into our system keychain (OSX) so client software (Google Chrome) will trust them
+
+# It is very important that the SUBJECT_ALTERNATIVE_NAME is configured to the domain(s) you want to test,
+# Google Chrome insists they are present, and you'll get NET::ERR_CERT_COMMON_NAME_INVALID errors if they
+# are missing. The 'print-server-csr' and 'print-server-crt' were created so that you can make sure that
+# this data is present in the Certificate Signing Request (CSR) and Signed Certificate (CRT) files created
+# by this processing.
+# The default domains that are supported are 'localhost' and 'keytool-local-trust',
+# but you should include any domains you intend to use to test locally.
+
 ROOT_KEYSTORE_NAME?=root.jks
 ROOT_KEYSTORE_PASSWORD?=password
 ROOT_PEM_NAME=root.pem
@@ -8,6 +26,7 @@ SERVER_TRUSTSTORE_NAME?=truststore.jks
 SERVER_TRUSTSTORE_PASSWORD?=password
 
 CERT_COMMON_NAME?=keytool-local-trust
+# If you provide more DNS values, make sure to update /etc/hosts!
 SUBJECT_ALTERNATIVE_NAME=SAN=DNS:localhost,DNS:keytool-local-trust
 
 SERVER_CSR_NAME=server.csr
@@ -26,11 +45,12 @@ clean:
 	rm -f $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) $(SERVER_TRUSTSTORE_NAME) \
 	$(ROOT_PEM_NAME) \
 	$(SERVER_CSR_NAME) $(SERVER_CRT_NAME) $(SERVER_PEM_NAME)
-	@echo "Don't forget to delete the system certificates, if you added them!\nTry 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'"
+	@echo "Don't forget to delete the system certificates, if you added them!"
+	@echo "Try 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'"
 
 create-root-keypair:
 	@echo 'Creating root keypair in $(ROOT_KEYSTORE_NAME)'
-	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -genkeypair -keyalg RSA \
+	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-alias root -dname "cn=$(CERT_COMMON_NAME) RootCA, ou=$(CERT_COMMON_NAME) Root_CertificateAuthority, o=CertificateAuthority, c=US"
 remove-root-from-root-keystore:
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -delete -alias root
