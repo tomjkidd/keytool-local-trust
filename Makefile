@@ -48,20 +48,26 @@ clean:
 	@echo "Don't forget to delete the system certificates, if you added them!"
 	@echo "Try 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'"
 
+# This command will also create the root keystore file
 create-root-keypair:
 	@echo 'Creating root keypair in $(ROOT_KEYSTORE_NAME)'
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-alias root -dname "cn=$(CERT_COMMON_NAME) RootCA, ou=$(CERT_COMMON_NAME) Root_CertificateAuthority, o=CertificateAuthority, c=US"
-remove-root-from-root-keystore:
-	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -delete -alias root
+$(ROOT_KEYSTORE_NAME): create-root-keypair
+	@echo "Creating $(ROOT_KEYSTORE_NAME)"
 list-root-keystore:
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -list -v
+remove-root-from-root-keystore:
+	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -delete -alias root
 
+# This command will also create the server keystore file
 create-server-keypair:
 	@echo 'Creating server keypair in $(SERVER_KEYSTORE_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-validity 395 -keysize 2048 -sigalg SHA256withRSA \
 	-alias server -dname "CN=localhost,O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=Boston,ST=MA,C=US" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
+$(SERVER_KEYSTORE_NAME): create-server-keypair
+	@echo "Creating $(SERVER_KEYSTORE_NAME)"
 list-server-keystore:
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -list -v
 
@@ -72,26 +78,26 @@ create-server-csr: create-server-keypair
 print-server-csr:
 	keytool -printcertreq -file $(SERVER_CSR_NAME) -v
 
-create-server-crt: create-server-csr
+create-server-crt: $(ROOT_KEYSTORE_NAME) create-server-csr
 	@echo 'Creating a server crt in $(SERVER_CRT_NAME)'
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -gencert -keyalg RSA \
 	-alias root -infile $(SERVER_CSR_NAME) -ext "$(SUBJECT_ALTERNATIVE_NAME)" > $(SERVER_CRT_NAME)
 print-server-crt: $(SERVER_CRT_NAME)
 	keytool -printcert -file $(SERVER_CRT_NAME) -v
 
-export-root-pem-from-root-keystore: create-root-keypair
+export-root-pem-from-root-keystore: $(ROOT_KEYSTORE_NAME) create-root-keypair
 	@echo 'Exporting root pem from $(ROOT_KEYSTORE_NAME) to $(ROOT_PEM_NAME)'
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -exportcert -rfc -alias root > $(ROOT_PEM_NAME)
-export-server-pem-from-server-keystore: create-server-crt
+export-server-pem-from-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) create-root-keypair create-server-keypair create-server-crt import-server-crt-to-server-keystore
 	@echo 'Exporting server pem from $(SERVER_KEYSTORE_NAME) to $(SERVER_PEM_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -exportcert -rfc -alias server > $(SERVER_PEM_NAME)
 
-import-root-pem-to-server-keystore: export-root-pem-from-root-keystore
+import-root-pem-to-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) export-root-pem-from-root-keystore
 	@echo 'Importing $(ROOT_PEM_NAME) into $(SERVER_KEYSTORE_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -importcert -keyalg RSA \
 	-alias root -file $(ROOT_PEM_NAME) -trustcacerts --noprompt
 
-import-server-crt-to-server-keystore: create-server-crt
+import-server-crt-to-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) create-server-crt import-root-pem-to-server-keystore
 	@echo 'Importing $(SERVER_CRT_NAME) into $(SERVER_KEYSTORE_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -importcert -keyalg RSA \
 	-alias server -file $(SERVER_CRT_NAME) -trustcacerts --noprompt
