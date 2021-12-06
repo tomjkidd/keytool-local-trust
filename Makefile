@@ -4,8 +4,8 @@
 # - The goal is to create a CA Root Certificate and a server Certificate, signed by that CA (both managed as PEM files).
 
 # Once we have the certificates, we can:
-# - Load the server private key and server certificate into the keystore to allow the server to server request
-# - Load the root and server certificates into the truststore to allow the server establish trust in them
+# - Load the server private key and server certificate into the keystore to allow the server to serve requests
+# - Load the root and server certificates into the truststore so the server will trust them
 # - Load the root and server certificates into our system keychain (OSX) so client software (Google Chrome) will trust them
 
 # It is very important that the SUBJECT_ALTERNATIVE_NAME is configured to the domain(s) you want to test,
@@ -114,9 +114,6 @@ osx-add-root-pem-to-keychain: $(ROOT_PEM_NAME)
 
 osx-add-server-pem-to-keychain: $(SERVER_PEM_NAME)
 	sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" $(SERVER_PEM_NAME)
-
-osx-dump-keychain:
-	sudo security dump-keychain "/System/Library/Keychains/SystemRootCertificates.keychain" | grep '$(CERT_COMMON_NAME)'
 
 osx-find-root-cert:
 	sudo security find-certificate -c '$(CERT_COMMON_NAME) RootCA' -Z "/Library/Keychains/System.keychain"
