@@ -1,6 +1,6 @@
 # Keytool Local Trust
 
-A Makefile recipe to wip up a https ready Java keystore and truststore
+A Makefile recipe to wip up an https ready Java keystore and truststore
 
 ## Usage
 
