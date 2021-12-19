@@ -36,27 +36,46 @@ SERVER_CSR_NAME=server.csr
 SERVER_CRT_NAME=server.crt
 SERVER_PEM_NAME=server.pem
 
+# https://www.linuxcommand.org/lc3_adv_tput.php
+# tput setaf <fg_color> - used to set foreground color
+# tput sgr0 - used to reset
+
 # https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
 # https://robotmoon.com/256-colors/#xterm-color-codes
 #Blue=\033[38;5;27m
 #Blue=\033[38;5;69m
-Blue=\033[38;5;39m
-None=\033[0m
+#Blue=\033[38;5;39m
+#None=\033[0m
+
+Blue := $(shell tput setaf 69)
+Green := $(shell tput setaf 2)
+Yellow := $(shell tput setaf 3)
+None := $(shell tput sgr0)
 
 .PHONY: all create-root-keypair create-server-keypair
 
 all: move-root-to-truststore move-server-to-truststore
 	@echo "$(Blue)Done populating $(SERVER_KEYSTORE_NAME) and $(SERVER_TRUSTSTORE_NAME).$(None)"
 	@echo "They should be ready to copy to the resources directory of a project, and to be used as the keystore and truststore, respectively."
-	@echo "Try 'make list-root-keystore', 'make list-server-keystore', and 'make list-server-truststore' to see the contents of the keystores."
-	@echo "Try 'make osx-add-root-pem-to-keychain' and 'make osx-add-server-pem-to-keychain' to add the root and server certificates to your OSX keychain."
+	@echo "$(Green)Try 'make list-root-keystore', 'make list-server-keystore', and 'make list-server-truststore' to see the contents of the keystores."
+	@echo "Try 'make osx-add-root-pem-to-keychain' and 'make osx-add-server-pem-to-keychain' to add the root and server certificates to your OSX keychain.$(None)"
+
+tput-check:
+	@echo "$(Blue)This should be blue$(None)"
+	@echo "$(Green)This should be green$(None)"
+	@echo "$(Yellow)This should be yellow$(None)"
+	@echo "This should be the default"
+
+tput-colors:
+	@echo "$(Blue)Displaying tput color options$(None)"
+	@scripts/tput-colors.sh
 
 clean:
 	rm -f $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) $(SERVER_TRUSTSTORE_NAME) \
 	$(ROOT_PEM_NAME) \
 	$(SERVER_CSR_NAME) $(SERVER_CRT_NAME) $(SERVER_PEM_NAME)
-	@echo "Don't forget to delete the system certificates, if you added them!"
-	@echo "Try 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'"
+	@echo "$(Yellow)Don't forget to delete the system certificates, if you added them!"
+	@echo "Try 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'$(None)"
 
 ensure-root-keypair:
 	@echo "$(Blue)Ensuring root keypair$(None)"
