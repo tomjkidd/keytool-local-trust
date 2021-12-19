@@ -26,6 +26,9 @@ SERVER_TRUSTSTORE_NAME?=truststore.jks
 SERVER_TRUSTSTORE_PASSWORD?=password
 
 CERT_COMMON_NAME?=keytool-local-trust
+CERT_CITY?=Boston
+CERT_STATE?=MA
+CERT_COUNTRY?=US
 # If you provide more DNS values, make sure to update /etc/hosts!
 SUBJECT_ALTERNATIVE_NAME=SAN=DNS:localhost,DNS:keytool-local-trust
 
@@ -52,7 +55,7 @@ clean:
 create-root-keypair:
 	@echo 'Creating root keypair in $(ROOT_KEYSTORE_NAME)'
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
-	-alias root -dname "cn=$(CERT_COMMON_NAME) RootCA, ou=$(CERT_COMMON_NAME) Root_CertificateAuthority, o=CertificateAuthority, c=US"
+	-alias root -dname "cn=$(CERT_COMMON_NAME) RootCA, ou=$(CERT_COMMON_NAME) Root_CertificateAuthority, o=CertificateAuthority, c=$(CERT_COUNTRY)"
 $(ROOT_KEYSTORE_NAME): create-root-keypair
 	@echo "Creating $(ROOT_KEYSTORE_NAME)"
 list-root-keystore:
@@ -65,7 +68,7 @@ create-server-keypair:
 	@echo 'Creating server keypair in $(SERVER_KEYSTORE_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-validity 395 -keysize 2048 -sigalg SHA256withRSA \
-	-alias server -dname "CN=localhost,O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=Boston,ST=MA,C=US" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
+	-alias server -dname "CN=localhost,O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=$(CERT_CITY),ST=$(CERT_STATE),C=$(CERT_COUNTRY)" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
 $(SERVER_KEYSTORE_NAME): create-server-keypair
 	@echo "Creating $(SERVER_KEYSTORE_NAME)"
 list-server-keystore:
