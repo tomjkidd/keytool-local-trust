@@ -40,6 +40,7 @@ SERVER_PEM_NAME=server.pem
 # tput setaf <fg_color> - used to set foreground color
 # tput sgr0 - used to reset
 Blue := $(shell tput setaf 69)
+Red := $(shell tput setaf 1)
 Green := $(shell tput setaf 2)
 Yellow := $(shell tput setaf 3)
 None := $(shell tput sgr0)
@@ -52,10 +53,13 @@ all: move-root-to-truststore move-server-to-truststore
 	@echo "$(Green)Try 'make list-root-keystore', 'make list-server-keystore', and 'make list-server-truststore' to see the contents of the keystores."
 	@echo "Try 'make osx-add-root-pem-to-keychain' and 'make osx-add-server-pem-to-keychain' to add the root and server certificates to your OSX keychain.$(None)"
 
+color-check: tput-check
+
 tput-check:
 	@echo "$(Blue)This should be blue$(None)"
 	@echo "$(Green)This should be green$(None)"
 	@echo "$(Yellow)This should be yellow$(None)"
+	@echo "$(Red)This should be red$(None)"
 	@echo "This should be the default"
 
 tput-colors:
@@ -63,6 +67,7 @@ tput-colors:
 	@scripts/tput-colors.sh
 
 clean:
+	@echo "$(Red)Removing all local keystore/truststore and certificate files$(None)"
 	rm -f $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) $(SERVER_TRUSTSTORE_NAME) \
 	$(ROOT_PEM_NAME) \
 	$(SERVER_CSR_NAME) $(SERVER_CRT_NAME) $(SERVER_PEM_NAME)
@@ -92,6 +97,7 @@ $(ROOT_KEYSTORE_NAME): ensure-root-keypair
 list-root-keystore:
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -list -v
 remove-root-from-root-keystore:
+	@echo "$(Red)Removing root alias from $(ROOT_KEYSTORE_NAME)$(None)"
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -delete -alias root
 
 # This command will also create the server keystore file
