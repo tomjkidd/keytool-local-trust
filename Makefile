@@ -39,14 +39,6 @@ SERVER_PEM_NAME=server.pem
 # https://www.linuxcommand.org/lc3_adv_tput.php
 # tput setaf <fg_color> - used to set foreground color
 # tput sgr0 - used to reset
-
-# https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
-# https://robotmoon.com/256-colors/#xterm-color-codes
-#Blue=\033[38;5;27m
-#Blue=\033[38;5;69m
-#Blue=\033[38;5;39m
-#None=\033[0m
-
 Blue := $(shell tput setaf 69)
 Green := $(shell tput setaf 2)
 Yellow := $(shell tput setaf 3)
