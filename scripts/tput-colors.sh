@@ -33,3 +33,6 @@ for fg_color in {0..255}; do
     done
     echo $(tput sgr0)
 done
+
+# For integration with Makefile
+# https://newbedev.com/print-bold-or-colored-text-from-makefile-rule
