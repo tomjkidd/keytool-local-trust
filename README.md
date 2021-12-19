@@ -20,7 +20,7 @@ This should produce a bunch of files, so lets talk about the mental model...
 
 ## Mental model
 
- - The 'root' keystore serves a mini Certificate Authority (CA)
+ - The 'root' keystore serves as a mini Certificate Authority (CA)
  - The 'server' keystore and truststore serve as the Java keystore and truststore, respectively, to use for a webserver
  - The goal is to create a CA Root Certificate and a server Certificate, signed by that CA (both managed as PEM files).
 
