@@ -36,10 +36,17 @@ SERVER_CSR_NAME=server.csr
 SERVER_CRT_NAME=server.crt
 SERVER_PEM_NAME=server.pem
 
+# https://stackoverflow.com/questions/4842424/list-of-ansi-color-escape-sequences
+# https://robotmoon.com/256-colors/#xterm-color-codes
+#Blue=\033[38;5;27m
+#Blue=\033[38;5;69m
+Blue=\033[38;5;39m
+None=\033[0m
+
 .PHONY: all create-root-keypair create-server-keypair
 
 all: move-root-to-truststore move-server-to-truststore
-	@echo "Done populating $(SERVER_KEYSTORE_NAME) and $(SERVER_TRUSTSTORE_NAME)."
+	@echo "$(Blue)Done populating $(SERVER_KEYSTORE_NAME) and $(SERVER_TRUSTSTORE_NAME).$(None)"
 	@echo "They should be ready to copy to the resources directory of a project, and to be used as the keystore and truststore, respectively."
 	@echo "Try 'make list-root-keystore', 'make list-server-keystore', and 'make list-server-truststore' to see the contents of the keystores."
 	@echo "Try 'make osx-add-root-pem-to-keychain' and 'make osx-add-server-pem-to-keychain' to add the root and server certificates to your OSX keychain."
@@ -52,22 +59,24 @@ clean:
 	@echo "Try 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'"
 
 ensure-root-keypair:
+	@echo "$(Blue)Ensuring root keypair$(None)"
 	@KEYSTORE_NAME=$(ROOT_KEYSTORE_NAME) \
 	KEYSTORE_PASSWORD=$(ROOT_KEYSTORE_PASSWORD) \
 	ALIAS=root scripts/ensure-keypair.sh
 
 ensure-server-keypair:
+	@echo "$(Blue)Ensuring server keypair$(None)"
 	@KEYSTORE_NAME=$(SERVER_KEYSTORE_NAME) \
 	KEYSTORE_PASSWORD=$(SERVER_KEYSTORE_PASSWORD) \
 	ALIAS=server scripts/ensure-keypair.sh
 
 # This command will also create the root keystore file
 create-root-keypair:
-	@echo 'Creating root keypair in $(ROOT_KEYSTORE_NAME)'
+	@echo "$(Blue)Creating root keypair in $(ROOT_KEYSTORE_NAME)$(None)"
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-alias root -dname "cn=$(CERT_COMMON_NAME) RootCA, ou=$(CERT_COMMON_NAME) Root_CertificateAuthority, o=CertificateAuthority, c=$(CERT_COUNTRY)"
 $(ROOT_KEYSTORE_NAME): ensure-root-keypair
-	@echo "Ensured $(ROOT_KEYSTORE_NAME)"
+	@echo "$(Blue)Ensured $(ROOT_KEYSTORE_NAME)$(None)"
 
 list-root-keystore:
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -list -v
@@ -76,54 +85,54 @@ remove-root-from-root-keystore:
 
 # This command will also create the server keystore file
 create-server-keypair:
-	@echo 'Creating server keypair in $(SERVER_KEYSTORE_NAME)'
+	@echo "$(Blue)Creating server keypair in $(SERVER_KEYSTORE_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-validity 395 -keysize 2048 -sigalg SHA256withRSA \
 	-alias server -dname "CN=localhost,O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=$(CERT_CITY),ST=$(CERT_STATE),C=$(CERT_COUNTRY)" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
 $(SERVER_KEYSTORE_NAME): ensure-server-keypair
-	@echo "Ensured $(SERVER_KEYSTORE_NAME)"
+	@echo "$(Blue)Ensured $(SERVER_KEYSTORE_NAME)$(None)"
 
 list-server-keystore:
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -list -v
 
 create-server-csr: ensure-server-keypair
-	@echo 'Creating a server csr in $(SERVER_CSR_NAME)'
+	@echo "$(Blue)Creating a server csr in $(SERVER_CSR_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -certreq -keyalg RSA \
 	-alias server -ext "$(SUBJECT_ALTERNATIVE_NAME)" > $(SERVER_CSR_NAME)
 print-server-csr:
 	keytool -printcertreq -file $(SERVER_CSR_NAME) -v
 
 create-server-crt: $(ROOT_KEYSTORE_NAME) create-server-csr
-	@echo 'Creating a server crt in $(SERVER_CRT_NAME)'
+	@echo "$(Blue)Creating a server crt in $(SERVER_CRT_NAME)$(None)"
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -gencert -keyalg RSA -rfc \
 	-alias root -infile $(SERVER_CSR_NAME) -ext "$(SUBJECT_ALTERNATIVE_NAME)" > $(SERVER_CRT_NAME)
 print-server-crt: $(SERVER_CRT_NAME)
 	keytool -printcert -file $(SERVER_CRT_NAME) -v
 
 export-root-pem-from-root-keystore: $(ROOT_KEYSTORE_NAME) ensure-root-keypair
-	@echo 'Exporting root pem from $(ROOT_KEYSTORE_NAME) to $(ROOT_PEM_NAME)'
+	@echo "$(Blue)Exporting root pem from $(ROOT_KEYSTORE_NAME) to $(ROOT_PEM_NAME)$(None)"
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -exportcert -rfc -alias root > $(ROOT_PEM_NAME)
 export-server-pem-from-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) ensure-root-keypair ensure-server-keypair create-server-crt import-server-crt-to-server-keystore
-	@echo 'Exporting server pem from $(SERVER_KEYSTORE_NAME) to $(SERVER_PEM_NAME)'
+	@echo "$(Blue)Exporting server pem from $(SERVER_KEYSTORE_NAME) to $(SERVER_PEM_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -exportcert -rfc -alias server > $(SERVER_PEM_NAME)
 
 import-root-pem-to-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) export-root-pem-from-root-keystore
-	@echo 'Importing $(ROOT_PEM_NAME) into $(SERVER_KEYSTORE_NAME)'
+	@echo "$(Blue)Importing $(ROOT_PEM_NAME) into $(SERVER_KEYSTORE_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -importcert -keyalg RSA \
 	-alias root -file $(ROOT_PEM_NAME) -trustcacerts --noprompt
 
 import-server-crt-to-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) create-server-crt import-root-pem-to-server-keystore
-	@echo 'Importing $(SERVER_CRT_NAME) into $(SERVER_KEYSTORE_NAME)'
+	@echo "$(Blue)Importing $(SERVER_CRT_NAME) into $(SERVER_KEYSTORE_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -importcert -keyalg RSA \
 	-alias server -file $(SERVER_CRT_NAME) -trustcacerts --noprompt
 
 move-root-to-truststore: export-root-pem-from-root-keystore
-	@echo 'Moving root alias from $(ROOT_KEYSTORE_NAME) into $(SERVER_TRUSTSTORE_NAME)'
+	@echo "$(Blue)Moving root alias from $(ROOT_KEYSTORE_NAME) into $(SERVER_TRUSTSTORE_NAME)$(None)"
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -export -alias root | \
 	keytool -keystore $(SERVER_TRUSTSTORE_NAME) -storepass $(SERVER_TRUSTSTORE_PASSWORD) -import -alias root -trustcacerts -noprompt
 
 move-server-to-truststore: export-server-pem-from-server-keystore
-	@echo 'Moving server alias from $(SERVER_KEYSTORE_NAME) into $(SERVER_TRUSTSTORE_NAME)'
+	@echo "$(Blue)Moving server alias from $(SERVER_KEYSTORE_NAME) into $(SERVER_TRUSTSTORE_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -export -alias server | \
 	keytool -keystore $(SERVER_TRUSTSTORE_NAME) -storepass $(SERVER_TRUSTSTORE_PASSWORD) -import -alias server -trustcacerts -noprompt
 
