@@ -43,6 +43,7 @@ Blue := $(shell tput setaf 69)
 Red := $(shell tput setaf 1)
 Green := $(shell tput setaf 2)
 Yellow := $(shell tput setaf 3)
+Orange := $(shell tput setaf 214)
 None := $(shell tput sgr0)
 
 .PHONY: all create-root-keypair create-server-keypair
@@ -59,6 +60,7 @@ tput-check:
 	@echo "$(Blue)This should be blue$(None)"
 	@echo "$(Green)This should be green$(None)"
 	@echo "$(Yellow)This should be yellow$(None)"
+	@echo "$(Orange)This should be orange$(None)"
 	@echo "$(Red)This should be red$(None)"
 	@echo "This should be the default"
 
