@@ -36,7 +36,7 @@ SERVER_CSR_NAME=server.csr
 SERVER_CRT_NAME=server.crt
 SERVER_PEM_NAME=server.pem
 
-.PHONY: all
+.PHONY: all create-root-keypair create-server-keypair
 
 all: move-root-to-truststore move-server-to-truststore
 	@echo "Done populating $(SERVER_KEYSTORE_NAME) and $(SERVER_TRUSTSTORE_NAME)."
@@ -51,13 +51,24 @@ clean:
 	@echo "Don't forget to delete the system certificates, if you added them!"
 	@echo "Try 'make osx-find-root-cert', 'make osx-find-server-cert', and 'osx-show-me-delete-certificate-cmd'"
 
+ensure-root-keypair:
+	@KEYSTORE_NAME=$(ROOT_KEYSTORE_NAME) \
+	KEYSTORE_PASSWORD=$(ROOT_KEYSTORE_PASSWORD) \
+	ALIAS=root scripts/ensure-keypair.sh
+
+ensure-server-keypair:
+	@KEYSTORE_NAME=$(SERVER_KEYSTORE_NAME) \
+	KEYSTORE_PASSWORD=$(SERVER_KEYSTORE_PASSWORD) \
+	ALIAS=server scripts/ensure-keypair.sh
+
 # This command will also create the root keystore file
 create-root-keypair:
 	@echo 'Creating root keypair in $(ROOT_KEYSTORE_NAME)'
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-alias root -dname "cn=$(CERT_COMMON_NAME) RootCA, ou=$(CERT_COMMON_NAME) Root_CertificateAuthority, o=CertificateAuthority, c=$(CERT_COUNTRY)"
-$(ROOT_KEYSTORE_NAME): create-root-keypair
-	@echo "Creating $(ROOT_KEYSTORE_NAME)"
+$(ROOT_KEYSTORE_NAME): ensure-root-keypair
+	@echo "Ensured $(ROOT_KEYSTORE_NAME)"
+
 list-root-keystore:
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -list -v
 remove-root-from-root-keystore:
@@ -69,12 +80,13 @@ create-server-keypair:
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-validity 395 -keysize 2048 -sigalg SHA256withRSA \
 	-alias server -dname "CN=localhost,O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=$(CERT_CITY),ST=$(CERT_STATE),C=$(CERT_COUNTRY)" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
-$(SERVER_KEYSTORE_NAME): create-server-keypair
-	@echo "Creating $(SERVER_KEYSTORE_NAME)"
+$(SERVER_KEYSTORE_NAME): ensure-server-keypair
+	@echo "Ensured $(SERVER_KEYSTORE_NAME)"
+
 list-server-keystore:
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -list -v
 
-create-server-csr: create-server-keypair
+create-server-csr: ensure-server-keypair
 	@echo 'Creating a server csr in $(SERVER_CSR_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -certreq -keyalg RSA \
 	-alias server -ext "$(SUBJECT_ALTERNATIVE_NAME)" > $(SERVER_CSR_NAME)
@@ -83,15 +95,15 @@ print-server-csr:
 
 create-server-crt: $(ROOT_KEYSTORE_NAME) create-server-csr
 	@echo 'Creating a server crt in $(SERVER_CRT_NAME)'
-	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -gencert -keyalg RSA \
+	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -gencert -keyalg RSA -rfc \
 	-alias root -infile $(SERVER_CSR_NAME) -ext "$(SUBJECT_ALTERNATIVE_NAME)" > $(SERVER_CRT_NAME)
 print-server-crt: $(SERVER_CRT_NAME)
 	keytool -printcert -file $(SERVER_CRT_NAME) -v
 
-export-root-pem-from-root-keystore: $(ROOT_KEYSTORE_NAME) create-root-keypair
+export-root-pem-from-root-keystore: $(ROOT_KEYSTORE_NAME) ensure-root-keypair
 	@echo 'Exporting root pem from $(ROOT_KEYSTORE_NAME) to $(ROOT_PEM_NAME)'
 	keytool -keystore $(ROOT_KEYSTORE_NAME) -storepass $(ROOT_KEYSTORE_PASSWORD) -exportcert -rfc -alias root > $(ROOT_PEM_NAME)
-export-server-pem-from-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) create-root-keypair create-server-keypair create-server-crt import-server-crt-to-server-keystore
+export-server-pem-from-server-keystore: $(ROOT_KEYSTORE_NAME) $(SERVER_KEYSTORE_NAME) ensure-root-keypair ensure-server-keypair create-server-crt import-server-crt-to-server-keystore
 	@echo 'Exporting server pem from $(SERVER_KEYSTORE_NAME) to $(SERVER_PEM_NAME)'
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -exportcert -rfc -alias server > $(SERVER_PEM_NAME)
 
