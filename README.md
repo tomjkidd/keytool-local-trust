@@ -51,7 +51,7 @@ tree
 - Makefile: The makefile, take a look at the targets!
 - README.md: This file
 - keystore.jks: The default server keystore, with the server private key and signed certificate. Ready to use with a Java app.
-- root.jks: The default root keystore, with the root privated key
+- root.jks: The default root keystore, with the root private key
 - root.pem: The root certificate, to be installed for trust chain
 - server.crt: The server certificate, signed by the root.jks
 - server.csr: The server certificate signing request, presented to root.jks to sign
