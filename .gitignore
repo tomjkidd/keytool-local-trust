@@ -1,0 +1,12 @@
+.DS_Store
+.idea
+*.log
+tmp/
+
+keystore.jks
+truststore.jks
+root.jks
+root.pem
+server.csr
+server.crt
+server.pem
