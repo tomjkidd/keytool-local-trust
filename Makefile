@@ -32,6 +32,7 @@ CERT_COUNTRY?=US
 # If you provide more DNS values, make sure to update /etc/hosts!
 SUBJECT_ALTERNATIVE_NAME=SAN=DNS:localhost,DNS:keytool-local-trust
 
+SERVER_COMMON_NAME?=localhost
 SERVER_CSR_NAME=server.csr
 SERVER_CRT_NAME=server.crt
 SERVER_PEM_NAME=server.pem
@@ -107,7 +108,7 @@ create-server-keypair:
 	@echo "$(Blue)Creating server keypair in $(SERVER_KEYSTORE_NAME)$(None)"
 	keytool -keystore $(SERVER_KEYSTORE_NAME) -storepass $(SERVER_KEYSTORE_PASSWORD) -deststoretype pkcs12 -genkeypair -keyalg RSA \
 	-validity 395 -keysize 2048 -sigalg SHA256withRSA \
-	-alias server -dname "CN=localhost,O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=$(CERT_CITY),ST=$(CERT_STATE),C=$(CERT_COUNTRY)" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
+	-alias server -dname "CN=$(SERVER_COMMON_NAME),O=$(CERT_COMMON_NAME),OU=$(CERT_COMMON_NAME),L=$(CERT_CITY),ST=$(CERT_STATE),C=$(CERT_COUNTRY)" -ext "$(SUBJECT_ALTERNATIVE_NAME)"
 $(SERVER_KEYSTORE_NAME): ensure-server-keypair
 	@echo "$(Blue)Ensured $(SERVER_KEYSTORE_NAME)$(None)"
 
@@ -160,12 +161,13 @@ list-server-truststore:
 
 # ===== OSX specific stuff =====
 # See https://ss64.com/osx/security.html for more information
+# https://stackoverflow.com/questions/35031149/set-imported-certificate-to-always-be-trusted-in-mac-os-x
 
 osx-add-root-pem-to-keychain: $(ROOT_PEM_NAME)
 	sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" $(ROOT_PEM_NAME)
 
 osx-add-server-pem-to-keychain: $(SERVER_PEM_NAME)
-	sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" $(SERVER_PEM_NAME)
+	sudo security add-trusted-cert -d -r trustAsRoot -k "/Library/Keychains/System.keychain" $(SERVER_PEM_NAME)
 
 osx-find-root-cert:
 	sudo security find-certificate -c '$(CERT_COMMON_NAME) RootCA' -Z "/Library/Keychains/System.keychain"
